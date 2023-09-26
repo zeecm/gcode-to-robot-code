@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -15,13 +15,15 @@ class MoveType(Enum):
 
 
 class ABBTranslator:
-    def __init__(self, model: ObjectModel):
+    def __init__(self, tool: str, model: ObjectModel, default_movetype: MoveType = MoveType.PATHFINDING):
         self._model = model
 
         self._rotation = "[-1, 0, 0, 0]"
         self._conf = "[-1, 0, 1, 0]"
-        self._tool = "tool0"
+        self._tool = tool
         self._world_object = "wobj0"
+        
+        self._default_movetype = default_movetype
 
         self._robtargets = []
         self._move_commands = []
@@ -48,7 +50,7 @@ class ABBTranslator:
             self._write_to_file(data, filepath)
 
     def _write_to_file(self, data: List[str], filepath: str) -> None:
-        with open(filepath, "w") as file:
+        with open(filepath, "w", encoding="utf-8") as file:
             for line in data:
                 file.writelines(line)
 
@@ -61,9 +63,10 @@ class ABBTranslator:
         self._robtargets.append(robtarget_line)
 
     def _write_movement(
-        self, point_name: str, move_type: MoveType = MoveType.LINEAR
+        self, point_name: str, movetype: Optional[MoveType] = None
     ) -> None:
-        move_command = f"{move_type.value} {point_name},v100,fine,{self._tool}\WObj:={self._world_object};\n"
+        movetype = movetype or MoveType.PATHFINDING
+        move_command = f"{movetype.value} {point_name},v100,fine,{self._tool}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
 
@@ -72,7 +75,7 @@ if __name__ == "__main__":
     gcode_object = reader.read_file(
         r"gcode_to_robot_code\gcode_files\BB1_cylinder.gcode"
     )
-    abb_translator = ABBTranslator(gcode_object)
-    # abb_translator.generate_abb_code()
-    # abb_translator.save_abb_code()
+    abb_translator = ABBTranslator(tool="toolnew", model=gcode_object)
+    abb_translator.generate_abb_code()
+    abb_translator.save_abb_code()
     gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)
