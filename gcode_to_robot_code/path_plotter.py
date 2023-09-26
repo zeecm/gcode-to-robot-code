@@ -10,9 +10,11 @@ from gcode_to_robot_code.constants import ProjectionMode
 
 class PathPlotter(Protocol):
     def plot_path(
-        self, x: ndarray,
+        self,
+        x: ndarray,
         y: ndarray,
-        z: ndarray,projection: ProjectionMode = ProjectionMode.TWO_DIMENSIONAL
+        z: ndarray,
+        projection: ProjectionMode = ProjectionMode.TWO_DIMENSIONAL,
     ) -> None:
         ...
 

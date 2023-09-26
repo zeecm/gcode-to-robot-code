@@ -33,14 +33,14 @@ class TestObjectModel:
 
     def test_y_property(self):
         y_series = self.model.y
-        expected_y_series = pd.Series([2.0],name="y")
+        expected_y_series = pd.Series([2.0], name="y")
         assert_series_equal(y_series, expected_y_series)
 
     def test_z_property(self):
         z_series = self.model.z
         ezpected_z_series = pd.Series([3.0], name="z")
         assert_series_equal(z_series, ezpected_z_series)
-        
+
     def test_remove_point(self):
         self.model.remove_point_by_index(0)
         assert self.model.pathlength == 0
@@ -60,16 +60,15 @@ class TestObjectModel:
         ]
         self.model = ObjectModel(pathdata)
         self.model.subset_model(50)
-        
+
         expected_model = pd.DataFrame(
             [
-            {"x": 1.0, "y": 1.0, "z": 1.0},
-            {"x": 3.0, "y": 1.0, "z": 1.0},
-            {"x": 5.0, "y": 1.0, "z": 1.0},
-            {"x": 7.0, "y": 1.0, "z": 1.0},
-            {"x": 9.0, "y": 1.0, "z": 1.0},
-        ]
+                {"x": 1.0, "y": 1.0, "z": 1.0},
+                {"x": 3.0, "y": 1.0, "z": 1.0},
+                {"x": 5.0, "y": 1.0, "z": 1.0},
+                {"x": 7.0, "y": 1.0, "z": 1.0},
+                {"x": 9.0, "y": 1.0, "z": 1.0},
+            ]
         )
-        
+
         assert_frame_equal(self.model.model, expected_model)
-        
