@@ -1,8 +1,12 @@
-from enum import Enum
-from typing import List, Optional
+from __future__ import annotations
 
+from enum import Enum
+from typing import List, NamedTuple, Optional, Union
+
+import numpy as np
 from loguru import logger
 
+from gcode_to_robot_code.abb.data_types import LoadData, Pose, ToolData, ToolInfo
 from gcode_to_robot_code.constants import Coordinate, ProjectionMode
 from gcode_to_robot_code.gcode_reader import GcodeReader
 from gcode_to_robot_code.model import ObjectModel
@@ -14,21 +18,85 @@ class MoveType(Enum):
     CURVE = "moveC"
 
 
-class ABBTranslator:
-    def __init__(self, tool: str, model: ObjectModel, default_movetype: MoveType = MoveType.PATHFINDING):
+_INDENTATION = "   "
+
+
+class CodeBlock(NamedTuple):
+    start_line: str
+    end_line: str
+    code: Optional[List[Union[CodeBlock, List[str], str]]]
+
+    def generate_text_list(self) -> List[str]:
+        code = self._generate_nested_code()
+        return [
+            self.start_line,
+            *code,
+            self.end_line,
+        ]
+
+    def _generate_nested_code(self) -> List[str]:
+        if self.code is None:
+            return []
+        code = []
+        for nested_code in self.code:
+            if isinstance(nested_code, CodeBlock):
+                nested_code = nested_code.generate_text_list()
+            code.extend([_INDENTATION + code_line for code_line in nested_code])
+        return code
+
+
+_DEFAULT_TOOL_DATA = ToolData(
+    robhold=True,
+    tframe=Pose(
+        trans=np.array((0, 0, 0)),
+        rot=np.array((0, 0, 1, 0)),
+    ),
+    tload=LoadData(
+        mass=1,
+        cog=np.array(
+            (
+                0,
+                0,
+                1,
+            )
+        ),
+        aom=np.array((1, 0, 0, 0)),
+        ix=0,
+        iy=0,
+        iz=0,
+    ),
+)
+_DEFAULT_TOOL_NAME = "tool1"
+
+DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
+
+DEFAULT_OFFSET = Coordinate(x=1000.0, y=-50.0, z=500.0)
+
+
+class ABBModuleGenerator:
+    def __init__(
+        self,
+        model: ObjectModel,
+        module_name: str = "MahModule",
+        tool: ToolInfo = DEFAULT_TOOL,
+        default_movetype: MoveType = MoveType.PATHFINDING,
+        target_offsets: Coordinate = DEFAULT_OFFSET,
+    ):
         self._model = model
 
-        self._rotation = "[-1, 0, 0, 0]"
-        self._conf = "[-1, 0, 1, 0]"
+        self._module_name = module_name
+        self._target_rotation = "[-1, 0, 0, 0]"
+        self._target_conf = "[-1, 0, 1, 0]"
         self._tool = tool
         self._world_object = "wobj0"
-        
+        self._target_offsets = target_offsets
+
         self._default_movetype = default_movetype
 
-        self._robtargets = []
-        self._move_commands = []
+        self._robtargets: List[str] = []
+        self._move_commands: List[str] = []
 
-    def generate_abb_code(self) -> None:
+    def generate_robtargets_and_movements(self) -> None:
         logger.info("generating abb code...")
         for point in range(self._model.pathlength - 1):
             point_name = f"p{point}"
@@ -37,7 +105,7 @@ class ABBTranslator:
             self._write_movement(point_name)
         logger.info("generation of abb rapid code done")
 
-    def save_abb_code(
+    def save_robtargets_and_movements_to_text(
         self,
         robtargets_filepath: str = "robtargets.txt",
         movement_filepath: str = "movements.txt",
@@ -55,8 +123,12 @@ class ABBTranslator:
                 file.writelines(line)
 
     def _write_robtarget(self, coordinate: Coordinate, point_name: str) -> None:
+        adjusted_x = coordinate.x + self._target_offsets.x
+        adjusted_y = coordinate.y + self._target_offsets.y
+        adjusted_z = coordinate.z + self._target_offsets.z
+
         robtarget = (
-            f":= [[{str(coordinate.x)},{str(coordinate.y)},{str(coordinate.z)}], {self._rotation},{self._conf}, [ 9E+9,9E+9, 9E9, 9E9, 9E9, 9E9]];"
+            f":= [[{str(adjusted_x)},{str(adjusted_y)},{str(adjusted_z)}], {self._target_rotation},{self._target_conf}, [ 9E+9,9E+9, 9E9, 9E9, 9E9, 9E9]];"
             + "\n"
         )
         robtarget_line = f"CONST robtarget {point_name}{robtarget}"
@@ -66,16 +138,53 @@ class ABBTranslator:
         self, point_name: str, movetype: Optional[MoveType] = None
     ) -> None:
         movetype = movetype or MoveType.PATHFINDING
-        move_command = f"{movetype.value} {point_name},v100,fine,{self._tool}\WObj:={self._world_object};\n"
+        move_command = f"{movetype.value} {point_name},v100,fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
+
+    @property
+    def tooldata_line(self) -> str:
+        tool_data = self._tool.data
+        rob_hold = tool_data.robhold
+        tframe = tool_data.tframe
+        tload = tool_data.tload
+
+        tooldata_str = f"[{rob_hold},[{tframe.trans},{tframe.rot}],[{tload.mass},{tload.cog},{tload.aom},{tload.ix},{tload.iy},{tload.iz}]]"
+
+        return f"PERS tooldata {self._tool.name}:={tooldata_str}\n"
+
+    def save_module(self, module_filepath: Optional[str] = None) -> None:
+        module_filepath = module_filepath or f"{self._module_name}.mod"
+        module = self._generate_abb_module()
+        module_text_data = module.generate_text_list()
+        self._write_to_file(module_text_data, module_filepath)
+
+    def _generate_abb_module(self) -> CodeBlock:
+        module_declaration = f"MODULE {self._module_name}\n"
+        module_end = "ENDMODULE\n"
+        tool = self.tooldata_line
+        procedure = self._generate_procedure_codeblock()
+        code = [[tool], self._robtargets, procedure]
+        return CodeBlock(start_line=module_declaration, end_line=module_end, code=code)
+
+    def _generate_procedure_codeblock(
+        self, procedure_name: str = "TestProc"
+    ) -> CodeBlock:
+        procedure_declaration = f"PROC {procedure_name}()\n"
+        procedure_close = "ENDPROC\n"
+        return CodeBlock(
+            start_line=procedure_declaration,
+            end_line=procedure_close,
+            code=[self._move_commands],
+        )
 
 
 if __name__ == "__main__":
     reader = GcodeReader()
     gcode_object = reader.read_file(
-        r"gcode_to_robot_code\gcode_files\BB1_cylinder.gcode"
+        r"gcode_to_robot_code\gcode_files\mencast_logo.gcode"
     )
-    abb_translator = ABBTranslator(tool="toolnew", model=gcode_object)
-    abb_translator.generate_abb_code()
-    abb_translator.save_abb_code()
+    abb_translator = ABBModuleGenerator(model=gcode_object)
+    abb_translator.generate_robtargets_and_movements()
+    abb_translator.save_robtargets_and_movements_to_text()
+    abb_translator.save_module()
     gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)
