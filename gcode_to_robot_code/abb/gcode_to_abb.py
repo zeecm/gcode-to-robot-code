@@ -24,7 +24,7 @@ _INDENTATION = "   "
 class CodeBlock(NamedTuple):
     start_line: str
     end_line: str
-    code: Optional[List[Union[CodeBlock, List[str], str]]]
+    code: Optional[List[Union[CodeBlock, List[str]]]]
 
     def generate_text_list(self) -> List[str]:
         code = self._generate_nested_code()
@@ -42,25 +42,24 @@ class CodeBlock(NamedTuple):
             if isinstance(nested_code, CodeBlock):
                 nested_code = nested_code.generate_text_list()
             code.extend([_INDENTATION + code_line for code_line in nested_code])
+            code.append("\n")
         return code
 
 
 _DEFAULT_TOOL_DATA = ToolData(
     robhold=True,
     tframe=Pose(
-        trans=np.array((0, 0, 0)),
-        rot=np.array((0, 0, 1, 0)),
+        trans=[0, 0, 0],
+        rot=[0, 0, 1, 0],
     ),
     tload=LoadData(
         mass=1,
-        cog=np.array(
-            (
-                0,
-                0,
-                1,
-            )
-        ),
-        aom=np.array((1, 0, 0, 0)),
+        cog=[
+            0,
+            0,
+            1,
+        ],
+        aom=[1, 0, 0, 0],
         ix=0,
         iy=0,
         iz=0,
@@ -78,6 +77,7 @@ class ABBModuleGenerator:
         self,
         model: ObjectModel,
         module_name: str = "MahModule",
+        procedure_name: str = "TestProc",
         tool: ToolInfo = DEFAULT_TOOL,
         default_movetype: MoveType = MoveType.PATHFINDING,
         target_offsets: Coordinate = DEFAULT_OFFSET,
@@ -85,6 +85,8 @@ class ABBModuleGenerator:
         self._model = model
 
         self._module_name = module_name
+        self._procedure_name = procedure_name
+        
         self._target_rotation = "[-1, 0, 0, 0]"
         self._target_conf = "[-1, 0, 1, 0]"
         self._tool = tool
@@ -150,7 +152,7 @@ class ABBModuleGenerator:
 
         tooldata_str = f"[{rob_hold},[{tframe.trans},{tframe.rot}],[{tload.mass},{tload.cog},{tload.aom},{tload.ix},{tload.iy},{tload.iz}]]"
 
-        return f"PERS tooldata {self._tool.name}:={tooldata_str}\n"
+        return f"PERS tooldata {self._tool.name}:={tooldata_str};\n"
 
     def save_module(self, module_filepath: Optional[str] = None) -> None:
         module_filepath = module_filepath or f"{self._module_name}.mod"
@@ -167,9 +169,9 @@ class ABBModuleGenerator:
         return CodeBlock(start_line=module_declaration, end_line=module_end, code=code)
 
     def _generate_procedure_codeblock(
-        self, procedure_name: str = "TestProc"
+        self
     ) -> CodeBlock:
-        procedure_declaration = f"PROC {procedure_name}()\n"
+        procedure_declaration = f"PROC {self._procedure_name}()\n"
         procedure_close = "ENDPROC\n"
         return CodeBlock(
             start_line=procedure_declaration,
@@ -180,11 +182,19 @@ class ABBModuleGenerator:
 
 if __name__ == "__main__":
     reader = GcodeReader()
-    gcode_object = reader.read_file(
-        r"gcode_to_robot_code\gcode_files\mencast_logo.gcode"
+    cylinder_gcode = reader.read_file(
+        r"gcode_to_robot_code\gcode_files\BB1_cylinder.gcode"
     )
-    abb_translator = ABBModuleGenerator(model=gcode_object)
-    abb_translator.generate_robtargets_and_movements()
-    abb_translator.save_robtargets_and_movements_to_text()
-    abb_translator.save_module()
-    gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)
+    mencast_logo_gcode = reader.read_file(r"gcode_to_robot_code/gcode_files/mencast_logo.gcode")
+    
+    cylinder_abb = ABBModuleGenerator(cylinder_gcode, module_name="CylinderZC", procedure_name="DrawCylinder")
+    mencast_abb = ABBModuleGenerator(mencast_logo_gcode, module_name="MencastLogoZC", procedure_name="DrawMencastM")
+    
+    cylinder_abb.generate_robtargets_and_movements()
+    cylinder_abb.save_module("CylinderZC.mod")
+    
+    mencast_abb.generate_robtargets_and_movements()
+    mencast_abb.save_module("DrawM_ZC.mod")
+    
+    
+    # gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)

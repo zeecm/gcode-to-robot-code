@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import List, NamedTuple
 
 import numpy as np
 
@@ -23,13 +23,13 @@ class ZoneData(NamedTuple):
 
 
 class JointTarget(NamedTuple):
-    robax: np.ndarray  # shape=(6,)
-    extax: np.ndarray  # shape=(6,)
+    robax: List[float]  # shape=(6,)
+    extax: List[float]  # shape=(6,)
 
 
 class Pose(NamedTuple):
-    trans: np.ndarray  # [x,y,z]
-    rot: np.ndarray  # [qw,qx,qy,qz]
+    trans: List[float]  # [x,y,z]
+    rot: List[float]  # [qw,qx,qy,qz]
 
 
 class ConfData(NamedTuple):
@@ -40,16 +40,16 @@ class ConfData(NamedTuple):
 
 
 class RobTarget(NamedTuple):
-    trans: np.ndarray  # [x,y,z]
-    rot: np.ndarray  # [qw,qx,qy,qz]
+    trans: List[float]  # [x,y,z]
+    rot: List[float]  # [qw,qx,qy,qz]
     robconf: ConfData  #
-    extax: np.ndarray  # shape=(6,)
+    extax: List[float]  # shape=(6,)
 
 
 class LoadData(NamedTuple):
     mass: float
-    cog: np.ndarray  # shape=(3,)
-    aom: np.ndarray  # shape=(4,)
+    cog: List[float]  # shape=(3,)
+    aom: List[float]  # shape=(4,)
     ix: float
     iy: float
     iz: float
