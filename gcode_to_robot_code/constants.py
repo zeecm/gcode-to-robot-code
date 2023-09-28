@@ -7,7 +7,13 @@ class ProjectionMode(Enum):
     TWO_DIMENSIONAL = "2d"
 
 
-class Coordinate(NamedTuple):
+class CartesianCoordinateAxis(Enum):
+    X = "x"
+    Y = "y"
+    Z = "z"
+
+
+class CartesianCoordinate(NamedTuple):
     x: float
     y: float
     z: float

@@ -1,7 +1,5 @@
 from typing import List, NamedTuple
 
-import numpy as np
-
 # source: https://pypi.org/project/abb-motion-program-exec/
 
 

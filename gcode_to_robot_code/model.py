@@ -5,14 +5,20 @@ from typing import Dict, List, Optional
 import pandas as pd
 from loguru import logger
 
-from gcode_to_robot_code.constants import Coordinate, ProjectionMode
+from gcode_to_robot_code.constants import (
+    CartesianCoordinate,
+    CartesianCoordinateAxis,
+    ProjectionMode,
+)
 from gcode_to_robot_code.path_plotter import MatplotlibPathPlotter, PathPlotter
 
 
-class ObjectModel:
-    def __init__(self, pathdata: Optional[List[Dict[str, float]]] = None):
+class ObjectToolPath:
+    def __init__(
+        self, pathdata: Optional[List[Dict[CartesianCoordinateAxis, float]]] = None
+    ):
         if not pathdata:
-            self._pathdata = pd.DataFrame(columns=["x", "y", "z"])
+            self._pathdata = pd.DataFrame(columns=list(CartesianCoordinateAxis))
         else:
             self._pathdata = pd.DataFrame(pathdata)
         self._pathdata.astype(float, copy=False)
@@ -23,22 +29,22 @@ class ObjectModel:
 
     @property
     def x(self) -> pd.Series:
-        return self._pathdata["x"]
+        return self._pathdata[CartesianCoordinateAxis.X]
 
     @property
     def y(self) -> pd.Series:
-        return self._pathdata["y"]
+        return self._pathdata[CartesianCoordinateAxis.Y]
 
     @property
     def z(self) -> pd.Series:
-        return self._pathdata["z"]
+        return self._pathdata[CartesianCoordinateAxis.Z]
 
     @property
-    def model(self) -> pd.DataFrame:
+    def toolpath(self) -> pd.DataFrame:
         return self._pathdata
 
     def add_point(
-        self, coordinate: Coordinate, before_index: Optional[int] = None
+        self, coordinate: CartesianCoordinate, before_index: Optional[int] = None
     ) -> None:
         new_point = [coordinate.x, coordinate.y, coordinate.z]
         if before_index:
@@ -49,12 +55,12 @@ class ObjectModel:
             self._pathdata.loc[last_index, :] = new_point
         self._pathdata.reset_index(drop=True, inplace=True)
 
-    def get_point(self, index: int) -> Coordinate:
+    def get_point(self, index: int) -> CartesianCoordinate:
         point_row = self._pathdata.iloc[index]
-        x = point_row["x"]
-        y = point_row["y"]
-        z = point_row["z"]
-        return Coordinate(x, y, z)
+        x = point_row[CartesianCoordinateAxis.X]
+        y = point_row[CartesianCoordinateAxis.Y]
+        z = point_row[CartesianCoordinateAxis.Z]
+        return CartesianCoordinate(x, y, z)
 
     def remove_point_by_index(
         self,
@@ -87,5 +93,47 @@ class ObjectModel:
         plotter.plot_path(x=x, y=y, z=z, projection=projection)
 
     @classmethod
-    def model_from_coordinates(cls, pathdata: List[Dict[str, float]]) -> ObjectModel:
-        return ObjectModel(pathdata)
+    def from_coordinates(
+        cls, pathdata: List[Dict[CartesianCoordinateAxis, float]]
+    ) -> ObjectToolPath:
+        return ObjectToolPath(pathdata)
+
+    def optimize_straight_line(self) -> None:
+        logger.info("optimizing straight line paths")
+        optimized_toolpath = []
+        start_index = 0
+
+        while start_index < self.pathlength - 1:
+            end_index = start_index + 1
+            direction_vector = self._calculate_direction_vector(
+                self.x[start_index : end_index + 1],
+                self.y[start_index : end_index + 1],
+                self.z[start_index : end_index + 1],
+            )
+            end_index += 1
+            while (
+                end_index < self.pathlength
+                and self._calculate_direction_vector(
+                    self.x[start_index : end_index + 1],
+                    self.y[start_index : end_index + 1],
+                    self.z[start_index : end_index + 1],
+                )
+                == direction_vector
+            ):
+                end_index += 1
+
+            end_index = min(self.pathlength - 1, end_index)
+
+            optimized_toolpath.append(self.toolpath.iloc[[start_index, end_index]])
+
+            start_index = end_index + 1
+        logger.info("optimization done")
+        self._pathdata = pd.concat(optimized_toolpath)
+
+    def _calculate_direction_vector(
+        self, x_values: pd.Series, y_values: pd.Series, z_values: pd.Series
+    ):
+        dx = x_values.iloc[-1] - x_values.iloc[0]
+        dy = y_values.iloc[-1] - y_values.iloc[0]
+        dz = z_values.iloc[-1] - z_values.iloc[0]
+        return dx, dy, dz

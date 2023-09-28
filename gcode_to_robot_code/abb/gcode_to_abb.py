@@ -3,13 +3,12 @@ from __future__ import annotations
 from enum import Enum
 from typing import List, NamedTuple, Optional, Union
 
-import numpy as np
 from loguru import logger
 
 from gcode_to_robot_code.abb.data_types import LoadData, Pose, ToolData, ToolInfo
-from gcode_to_robot_code.constants import Coordinate, ProjectionMode
+from gcode_to_robot_code.constants import CartesianCoordinate, ProjectionMode
 from gcode_to_robot_code.gcode_reader import GcodeReader
-from gcode_to_robot_code.model import ObjectModel
+from gcode_to_robot_code.model import ObjectToolPath
 
 
 class MoveType(Enum):
@@ -18,7 +17,7 @@ class MoveType(Enum):
     CURVE = "moveC"
 
 
-_INDENTATION = "   "
+_INDENTATION = "    "
 
 
 class CodeBlock(NamedTuple):
@@ -69,24 +68,24 @@ _DEFAULT_TOOL_NAME = "tool1"
 
 DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
 
-DEFAULT_OFFSET = Coordinate(x=1000.0, y=-50.0, z=500.0)
+DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=500.0)
 
 
 class ABBModuleGenerator:
     def __init__(
         self,
-        model: ObjectModel,
+        model: ObjectToolPath,
         module_name: str = "MahModule",
         procedure_name: str = "TestProc",
         tool: ToolInfo = DEFAULT_TOOL,
         default_movetype: MoveType = MoveType.PATHFINDING,
-        target_offsets: Coordinate = DEFAULT_OFFSET,
+        target_offsets: CartesianCoordinate = DEFAULT_OFFSET,
     ):
         self._model = model
 
         self._module_name = module_name
         self._procedure_name = procedure_name
-        
+
         self._target_rotation = "[-1, 0, 0, 0]"
         self._target_conf = "[-1, 0, 1, 0]"
         self._tool = tool
@@ -124,7 +123,9 @@ class ABBModuleGenerator:
             for line in data:
                 file.writelines(line)
 
-    def _write_robtarget(self, coordinate: Coordinate, point_name: str) -> None:
+    def _write_robtarget(
+        self, coordinate: CartesianCoordinate, point_name: str
+    ) -> None:
         adjusted_x = coordinate.x + self._target_offsets.x
         adjusted_y = coordinate.y + self._target_offsets.y
         adjusted_z = coordinate.z + self._target_offsets.z
@@ -168,9 +169,7 @@ class ABBModuleGenerator:
         code = [[tool], self._robtargets, procedure]
         return CodeBlock(start_line=module_declaration, end_line=module_end, code=code)
 
-    def _generate_procedure_codeblock(
-        self
-    ) -> CodeBlock:
+    def _generate_procedure_codeblock(self) -> CodeBlock:
         procedure_declaration = f"PROC {self._procedure_name}()\n"
         procedure_close = "ENDPROC\n"
         return CodeBlock(
@@ -182,19 +181,12 @@ class ABBModuleGenerator:
 
 if __name__ == "__main__":
     reader = GcodeReader()
-    cylinder_gcode = reader.read_file(
-        r"gcode_to_robot_code\gcode_files\BB1_cylinder.gcode"
+    gcode_object = reader.read_file(
+        r"gcode_to_robot_code\gcode_files\BB1_cylinder v2.gcode"
     )
-    mencast_logo_gcode = reader.read_file(r"gcode_to_robot_code/gcode_files/mencast_logo.gcode")
-    
-    cylinder_abb = ABBModuleGenerator(cylinder_gcode, module_name="CylinderZC", procedure_name="DrawCylinder")
-    mencast_abb = ABBModuleGenerator(mencast_logo_gcode, module_name="MencastLogoZC", procedure_name="DrawMencastM")
-    
-    cylinder_abb.generate_robtargets_and_movements()
-    cylinder_abb.save_module("CylinderZC.mod")
-    
-    mencast_abb.generate_robtargets_and_movements()
-    mencast_abb.save_module("DrawM_ZC.mod")
-    
-    
+    gcode_object.optimize_straight_line()
+
     # gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)
+    generator = ABBModuleGenerator(model=gcode_object)
+    generator.generate_robtargets_and_movements()
+    generator.save_module()
