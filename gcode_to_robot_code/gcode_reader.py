@@ -3,19 +3,19 @@ from typing import Dict, List
 from loguru import logger
 
 from gcode_to_robot_code.constants import CartesianCoordinate, CartesianCoordinateAxis
-from gcode_to_robot_code.model import ObjectToolPath
+from gcode_to_robot_code.model import ObjectPathModel
 
 
 class GcodeReader:
     def __init__(self):
-        self._model: ObjectToolPath
+        self._model: ObjectPathModel
         self._parsed_coordinates: List[Dict[CartesianCoordinateAxis, float]] = []
 
         self._current_coordinate: CartesianCoordinate = CartesianCoordinate(
             0.0, 0.0, 0.0
         )
 
-    def read_file(self, filepath: str) -> ObjectToolPath:
+    def read_file(self, filepath: str) -> ObjectPathModel:
         self._check_for_valid_gcode_file(filepath)
         self._read_filelines(filepath)
         self._update_model()
@@ -23,10 +23,10 @@ class GcodeReader:
 
     def _read_filelines(self, filepath: str) -> None:
         logger.info(f"reading gcode file: {filepath}")
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             filelines = file.readlines()
             for line in filelines:
-                self.parse_command(line)
+                self._parse_command(line)
         logger.info("reading complete")
 
     def _check_for_valid_gcode_file(self, filepath: str) -> None:
@@ -37,10 +37,10 @@ class GcodeReader:
 
     def _update_model(self) -> None:
         logger.info("updating model")
-        self._model = ObjectToolPath.from_coordinates(self._parsed_coordinates)
+        self._model = ObjectPathModel.from_coordinates(self._parsed_coordinates)
         logger.info("model update done")
 
-    def parse_command(self, command_line: str) -> None:
+    def _parse_command(self, command_line: str) -> None:
         command_components = command_line.strip().split()
         if not command_components:
             return

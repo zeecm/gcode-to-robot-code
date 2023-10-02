@@ -8,7 +8,7 @@ from loguru import logger
 from gcode_to_robot_code.abb.data_types import LoadData, Pose, ToolData, ToolInfo
 from gcode_to_robot_code.constants import CartesianCoordinate, ProjectionMode
 from gcode_to_robot_code.gcode_reader import GcodeReader
-from gcode_to_robot_code.model import ObjectToolPath
+from gcode_to_robot_code.model import ObjectPathModel
 
 
 class MoveType(Enum):
@@ -74,7 +74,7 @@ DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=500.0)
 class ABBModuleGenerator:
     def __init__(
         self,
-        model: ObjectToolPath,
+        model: ObjectPathModel,
         module_name: str = "MahModule",
         procedure_name: str = "TestProc",
         tool: ToolInfo = DEFAULT_TOOL,

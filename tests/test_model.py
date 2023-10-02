@@ -2,7 +2,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from gcode_to_robot_code.constants import CartesianCoordinate, CartesianCoordinateAxis
-from gcode_to_robot_code.model import ObjectToolPath
+from gcode_to_robot_code.model import ObjectPathModel
 
 
 class TestObjectModel:
@@ -14,7 +14,7 @@ class TestObjectModel:
                 CartesianCoordinateAxis.Z: 3.0,
             }
         ]
-        self.model = ObjectToolPath(initial_pathdata)
+        self.model = ObjectPathModel(initial_pathdata)
 
     def test_add_point(self):
         coordinate = CartesianCoordinate(4.0, 5.0, 6.0)
@@ -112,7 +112,7 @@ class TestObjectModel:
                 CartesianCoordinateAxis.Z: 1.0,
             },
         ]
-        self.model = ObjectToolPath(pathdata)
+        self.model = ObjectPathModel(pathdata)
         self.model.subset_model(50)
 
         expected_model = pd.DataFrame(
@@ -146,3 +146,38 @@ class TestObjectModel:
         )
 
         assert_frame_equal(self.model.toolpath, expected_model)
+
+    def test_from_coordinates(self):
+        coordinates = [
+            {
+                CartesianCoordinateAxis.X: 10.0,
+                CartesianCoordinateAxis.Y: 20.0,
+                CartesianCoordinateAxis.Z: 30.0,
+            },
+        ]
+        toolpath = ObjectPathModel.from_coordinates(coordinates)
+        assert toolpath.x[0] == 10.0
+        assert toolpath.y[0] == 20.0
+        assert toolpath.z[0] == 30.0
+
+    def test_optimize_path(self):
+        coordinates = [
+            {
+                CartesianCoordinateAxis.X: 10.0,
+                CartesianCoordinateAxis.Y: 10.0,
+                CartesianCoordinateAxis.Z: 10.0,
+            },
+            {
+                CartesianCoordinateAxis.X: 20.0,
+                CartesianCoordinateAxis.Y: 10.0,
+                CartesianCoordinateAxis.Z: 10.0,
+            },
+            {
+                CartesianCoordinateAxis.X: 30.0,
+                CartesianCoordinateAxis.Y: 10.0,
+                CartesianCoordinateAxis.Z: 10.0,
+            },
+        ]
+        toolpath = ObjectPathModel.from_coordinates(coordinates)
+        toolpath.optimize_straight_line()
+        assert toolpath.pathlength == 2

@@ -13,7 +13,7 @@ from gcode_to_robot_code.constants import (
 from gcode_to_robot_code.path_plotter import MatplotlibPathPlotter, PathPlotter
 
 
-class ObjectToolPath:
+class ObjectPathModel:
     def __init__(
         self, pathdata: Optional[List[Dict[CartesianCoordinateAxis, float]]] = None
     ):
@@ -95,8 +95,8 @@ class ObjectToolPath:
     @classmethod
     def from_coordinates(
         cls, pathdata: List[Dict[CartesianCoordinateAxis, float]]
-    ) -> ObjectToolPath:
-        return ObjectToolPath(pathdata)
+    ) -> ObjectPathModel:
+        return ObjectPathModel(pathdata)
 
     def optimize_straight_line(self) -> None:
         logger.info("optimizing straight line paths")
