@@ -12,6 +12,7 @@ setup(
         "python-dotenv",
         "requests",
         "loguru",
+        "matplotlib",
     ],
     extras_require={
         "dev": [
