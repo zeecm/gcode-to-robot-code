@@ -57,9 +57,10 @@ class ObjectPathModel:
 
     def get_point(self, index: int) -> CartesianCoordinate:
         point_row = self._pathdata.iloc[index]
-        x = point_row[CartesianCoordinateAxis.X]
-        y = point_row[CartesianCoordinateAxis.Y]
-        z = point_row[CartesianCoordinateAxis.Z]
+        # ignoring types as valid
+        x = point_row[CartesianCoordinateAxis.X] # type: ignore
+        y = point_row[CartesianCoordinateAxis.Y] # type: ignore
+        z = point_row[CartesianCoordinateAxis.Z] # type: ignore
         return CartesianCoordinate(x, y, z)
 
     def remove_point_by_index(
