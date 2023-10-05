@@ -3,6 +3,7 @@
 PACKAGE = "gcode_to_robot_code"
 
 install:
+	pip install --upgrade pip
 	pip install -e .[dev]
 	pre-commit autoupdate
 	pre-commit install
@@ -15,6 +16,6 @@ test:
 	pytest --cov=$(PACKAGE) tests/
 
 format:
-	pycln .
-	black .
-	isort .
+	pycln $(PACKAGE)
+	black $(PACKAGE)
+	isort $(PACKAGE)

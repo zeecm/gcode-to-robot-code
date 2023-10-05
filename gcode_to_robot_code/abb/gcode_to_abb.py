@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, NamedTuple, Optional, Union
+from typing import List, Literal, NamedTuple, Optional, Union
 
 from loguru import logger
 
@@ -68,7 +68,7 @@ _DEFAULT_TOOL_NAME = "tool1"
 
 DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
 
-DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=500.0)
+DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=430.0)
 
 
 class ABBModuleGenerator:
@@ -78,7 +78,9 @@ class ABBModuleGenerator:
         module_name: str = "MahModule",
         procedure_name: str = "TestProc",
         tool: ToolInfo = DEFAULT_TOOL,
-        default_movetype: MoveType = MoveType.PATHFINDING,
+        default_movetype: Union[
+            Literal["linear", "pathfinding", "curve"], MoveType
+        ] = MoveType.LINEAR,
         target_offsets: CartesianCoordinate = DEFAULT_OFFSET,
     ):
         self._model = model
@@ -92,10 +94,17 @@ class ABBModuleGenerator:
         self._world_object = "wobj0"
         self._target_offsets = target_offsets
 
-        self._default_movetype = default_movetype
+        self._default_movetype = self._convert_movetype_to_custom_enum(default_movetype)
 
         self._robtargets: List[str] = []
         self._move_commands: List[str] = []
+
+    def _convert_movetype_to_custom_enum(
+        self, move_type: Union[Literal["linear", "pathfinding", "curve"], MoveType]
+    ) -> MoveType:
+        if not isinstance(move_type, MoveType):
+            return MoveType[move_type.upper()]
+        return move_type
 
     def generate_robtargets_and_movements(self) -> None:
         logger.info("generating abb code...")
@@ -138,9 +147,13 @@ class ABBModuleGenerator:
         self._robtargets.append(robtarget_line)
 
     def _write_movement(
-        self, point_name: str, movetype: Optional[MoveType] = None
+        self,
+        point_name: str,
+        movetype: Optional[
+            Union[Literal["linear", "pathfinding", "curve"], MoveType]
+        ] = None,
     ) -> None:
-        movetype = movetype or MoveType.PATHFINDING
+        movetype = movetype or self._default_movetype
         move_command = f"{movetype.value} {point_name},v100,fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
@@ -177,16 +190,3 @@ class ABBModuleGenerator:
             end_line=procedure_close,
             code=[self._move_commands],
         )
-
-
-if __name__ == "__main__":
-    reader = GcodeReader()
-    gcode_object = reader.read_file(
-        r"gcode_to_robot_code\gcode_files\BB1_cylinder v2.gcode"
-    )
-    gcode_object.optimize_straight_line()
-
-    # gcode_object.plot_path(projection=ProjectionMode.THREE_DIMENSIONAL)
-    generator = ABBModuleGenerator(model=gcode_object)
-    generator.generate_robtargets_and_movements()
-    generator.save_module()

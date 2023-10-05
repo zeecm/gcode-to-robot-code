@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
 from loguru import logger
@@ -44,8 +44,12 @@ class ObjectPathModel:
         return self._pathdata
 
     def add_point(
-        self, coordinate: CartesianCoordinate, before_index: Optional[int] = None
+        self,
+        coordinate: Union[Tuple[float, float, float], CartesianCoordinate],
+        before_index: Optional[int] = None,
     ) -> None:
+        if not isinstance(coordinate, CartesianCoordinate):
+            coordinate = self._convert_to_cartesian_coordinate_datatype(coordinate)
         new_point = [coordinate.x, coordinate.y, coordinate.z]
         if before_index:
             mid_index = before_index - 0.5
@@ -55,12 +59,17 @@ class ObjectPathModel:
             self._pathdata.loc[last_index, :] = new_point
         self._pathdata.reset_index(drop=True, inplace=True)
 
+    def _convert_to_cartesian_coordinate_datatype(
+        self, coordinate: Tuple[float, float, float]
+    ) -> CartesianCoordinate:
+        return CartesianCoordinate(coordinate[0], coordinate[1], coordinate[2])
+
     def get_point(self, index: int) -> CartesianCoordinate:
         point_row = self._pathdata.iloc[index]
         # ignoring types as valid
-        x = point_row[CartesianCoordinateAxis.X] # type: ignore
-        y = point_row[CartesianCoordinateAxis.Y] # type: ignore
-        z = point_row[CartesianCoordinateAxis.Z] # type: ignore
+        x = point_row[CartesianCoordinateAxis.X]  # type: ignore
+        y = point_row[CartesianCoordinateAxis.Y]  # type: ignore
+        z = point_row[CartesianCoordinateAxis.Z]  # type: ignore
         return CartesianCoordinate(x, y, z)
 
     def remove_point_by_index(
@@ -85,8 +94,12 @@ class ObjectPathModel:
     def plot_path(
         self,
         plotter: Optional[PathPlotter] = None,
-        projection: ProjectionMode = ProjectionMode.TWO_DIMENSIONAL,
+        projection: Union[
+            Literal["3d", "2d"], ProjectionMode
+        ] = ProjectionMode.TWO_DIMENSIONAL,
     ) -> None:
+        if not isinstance(projection, ProjectionMode):
+            projection = ProjectionMode(projection)
         plotter = plotter or MatplotlibPathPlotter()
         x = self.x.to_numpy()
         y = self.y.to_numpy()
