@@ -149,9 +149,7 @@ class ABBModuleGenerator:
     def _write_movement(
         self,
         point_name: str,
-        movetype: Optional[
-            Union[Literal["linear", "pathfinding", "curve"], MoveType]
-        ] = None,
+        movetype: Optional[MoveType] = None,
     ) -> None:
         movetype = movetype or self._default_movetype
         move_command = f"{movetype.value} {point_name},v100,fine,{self._tool.name}\WObj:={self._world_object};\n"
