@@ -7,13 +7,16 @@ from gcode_to_robot_code.model import ObjectPathModel
 
 
 class GcodeReader:
-    def __init__(self):
+    def __init__(self, slicer_layer_height: float = 0.2):
         self._model: ObjectPathModel
         self._parsed_coordinates: List[Dict[CartesianCoordinateAxis, float]] = []
 
         self._current_coordinate: CartesianCoordinate = CartesianCoordinate(
             0.0, 0.0, 0.0
         )
+        self._slicer_layer_height = slicer_layer_height
+
+        self._mesh_start = False
 
     def read_file(self, filepath: str) -> ObjectPathModel:
         self._check_for_valid_gcode_file(filepath)
@@ -42,7 +45,13 @@ class GcodeReader:
 
     def _parse_command(self, command_line: str) -> None:
         command_components = command_line.strip().split()
+
         if not command_components:
+            return
+
+        self._identify_mesh_start(command_line)
+
+        if not self._mesh_start:
             return
 
         if command_components[0] in ["G0", "G1"]:
@@ -55,6 +64,12 @@ class GcodeReader:
                     CartesianCoordinateAxis.Z: coordinate.z,
                 }
             )
+
+    def _identify_mesh_start(self, command_line: str) -> None:
+        if self._mesh_start:
+            return
+        if command_line.strip().startswith(";MESH:"):
+            self._mesh_start = True
 
     def _parse_movement_command(
         self, command_components: List[str]
@@ -71,10 +86,10 @@ class GcodeReader:
             elif command.startswith("Y"):
                 y = float(command[1:])
             elif command.startswith("Z"):
-                z = float(command[1:])
+                z = float(command[1:]) - self._slicer_layer_height
 
-        x = x or self._current_coordinate.x
-        y = y or self._current_coordinate.y
-        z = z or self._current_coordinate.z
+        x = x if x is not None else self._current_coordinate.x
+        y = y if y is not None else self._current_coordinate.y
+        z = z if z is not None else self._current_coordinate.z
 
         return CartesianCoordinate(x, y, z)

@@ -1,5 +1,7 @@
 from typing import List, NamedTuple
 
+from gcode_to_robot_code.constants import CartesianCoordinate
+
 # source: https://pypi.org/project/abb-motion-program-exec/
 
 
@@ -38,10 +40,13 @@ class ConfData(NamedTuple):
 
 
 class RobTarget(NamedTuple):
-    trans: List[float]  # [x,y,z]
+    trans: CartesianCoordinate  # [x,y,z]
     rot: List[float]  # [qw,qx,qy,qz]
     robconf: ConfData  #
-    extax: List[float]  # shape=(6,)
+    extax: str  # shape=(6,)
+
+    def to_string(self):
+        return f"[{list(self.trans)}, {self.rot},{list(self.robconf)}, {self.extax}]"
 
 
 class LoadData(NamedTuple):

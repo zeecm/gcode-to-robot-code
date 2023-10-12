@@ -5,7 +5,14 @@ from typing import List, Literal, NamedTuple, Optional, Union
 
 from loguru import logger
 
-from gcode_to_robot_code.abb.data_types import LoadData, Pose, ToolData, ToolInfo
+from gcode_to_robot_code.abb.data_types import (
+    ConfData,
+    LoadData,
+    Pose,
+    RobTarget,
+    ToolData,
+    ToolInfo,
+)
 from gcode_to_robot_code.constants import CartesianCoordinate, ProjectionMode
 from gcode_to_robot_code.gcode_reader import GcodeReader
 from gcode_to_robot_code.model import ObjectPathModel
@@ -70,6 +77,21 @@ DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
 
 DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=430.0)
 
+DEFAULT_ROTATION = [-1.0, 0.0, 0.0, 0.0]
+
+DEFAULT_CONF = ConfData(-1.0, 0.0, 1.0, 0.0)
+
+DEFAULT_EXTAX = "[9E+9, 9E+9, 9E9, 9E9, 9E9, 9E9]"
+
+HOME_COORDINATE = CartesianCoordinate(x=650.0, y=0.0, z=100.0)
+
+HOME_ROBTARGET = RobTarget(
+    trans=HOME_COORDINATE,
+    rot=DEFAULT_ROTATION,
+    robconf=DEFAULT_CONF,
+    extax=DEFAULT_EXTAX,
+)
+
 
 class ABBModuleGenerator:
     def __init__(
@@ -78,23 +100,25 @@ class ABBModuleGenerator:
         module_name: str = "MahModule",
         procedure_name: str = "TestProc",
         tool: ToolInfo = DEFAULT_TOOL,
-        default_movetype: Union[
-            Literal["linear", "pathfinding", "curve"], MoveType
-        ] = MoveType.LINEAR,
         target_offsets: CartesianCoordinate = DEFAULT_OFFSET,
+        home: RobTarget = HOME_ROBTARGET,
     ):
         self._model = model
 
         self._module_name = module_name
         self._procedure_name = procedure_name
 
-        self._target_rotation = "[-1, 0, 0, 0]"
-        self._target_conf = "[-1, 0, 1, 0]"
+        self._target_rotation = DEFAULT_ROTATION
+        self._target_conf = DEFAULT_CONF
+        self._target_extax = DEFAULT_EXTAX
+
         self._tool = tool
         self._world_object = "wobj0"
         self._target_offsets = target_offsets
+        self._home = home
 
-        self._default_movetype = self._convert_movetype_to_custom_enum(default_movetype)
+        self._current_z_plane = 0.0
+        self._movetype = MoveType.LINEAR
 
         self._robtargets: List[str] = []
         self._move_commands: List[str] = []
@@ -108,12 +132,27 @@ class ABBModuleGenerator:
 
     def generate_robtargets_and_movements(self) -> None:
         logger.info("generating abb code...")
+        self._write_move_to_home()
         for point in range(self._model.pathlength - 1):
-            point_name = f"p{point}"
+            point_name = f"p_{self._procedure_name}_{point}"
             coordinate = self._model.get_point(point)
-            self._write_robtarget(coordinate, point_name)
+            self._update_z_plane_and_movetype(coordinate)
+            self._write_robtarget_from_coordinates(coordinate, point_name)
             self._write_movement(point_name)
+        self._write_move_to_home()
         logger.info("generation of abb rapid code done")
+
+    def _write_move_to_home(self) -> None:
+        home_point_name = "home"
+        self._write_robtarget(self._home, point_name=home_point_name)
+        self._write_movement(home_point_name, movetype=MoveType.PATHFINDING)
+
+    def _update_z_plane_and_movetype(self, coordinate: CartesianCoordinate) -> None:
+        if coordinate.z != self._current_z_plane:
+            self._current_z_plane = coordinate.z
+            self._movetype = MoveType.PATHFINDING
+            return
+        self._movetype = MoveType.LINEAR
 
     def save_robtargets_and_movements_to_text(
         self,
@@ -132,18 +171,32 @@ class ABBModuleGenerator:
             for line in data:
                 file.writelines(line)
 
-    def _write_robtarget(
-        self, coordinate: CartesianCoordinate, point_name: str
-    ) -> None:
-        adjusted_x = coordinate.x + self._target_offsets.x
-        adjusted_y = coordinate.y + self._target_offsets.y
-        adjusted_z = coordinate.z + self._target_offsets.z
+    def _generate_robtarget_from_coordinate(
+        self,
+        coordinate: CartesianCoordinate,
+        offset: Optional[CartesianCoordinate] = None,
+    ) -> RobTarget:
+        offset = offset or self._target_offsets
+        adjusted_coordinate = coordinate.offset_by_coordinate(self._target_offsets)
 
-        robtarget = (
-            f":= [[{str(adjusted_x)},{str(adjusted_y)},{str(adjusted_z)}], {self._target_rotation},{self._target_conf}, [ 9E+9,9E+9, 9E9, 9E9, 9E9, 9E9]];"
-            + "\n"
+        return RobTarget(
+            trans=adjusted_coordinate,
+            rot=self._target_rotation,
+            robconf=self._target_conf,
+            extax=self._target_extax,
         )
-        robtarget_line = f"CONST robtarget {point_name}{robtarget}"
+
+    def _write_robtarget_from_coordinates(
+        self,
+        coordinate: CartesianCoordinate,
+        point_name: str,
+        offset: Optional[CartesianCoordinate] = None,
+    ) -> None:
+        robtarget = self._generate_robtarget_from_coordinate(coordinate, offset)
+        self._write_robtarget(robtarget, point_name)
+
+    def _write_robtarget(self, robtarget: RobTarget, point_name: str) -> None:
+        robtarget_line = f"CONST robtarget {point_name} := {robtarget.to_string()};\n"
         self._robtargets.append(robtarget_line)
 
     def _write_movement(
@@ -151,7 +204,7 @@ class ABBModuleGenerator:
         point_name: str,
         movetype: Optional[MoveType] = None,
     ) -> None:
-        movetype = movetype or self._default_movetype
+        movetype = movetype or self._movetype
         move_command = f"{movetype.value} {point_name},v100,fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
