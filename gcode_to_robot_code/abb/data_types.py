@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, NamedTuple
 
 from gcode_to_robot_code.constants import CartesianCoordinate
@@ -67,3 +68,32 @@ class ToolData(NamedTuple):
 class ToolInfo(NamedTuple):
     name: str
     data: ToolData
+
+
+class PredefinedSpeed(Enum):
+    V5 = "v5"
+    V10 = "v10"
+    V20 = "v20"
+    V30 = "v30"
+    V40 = "v40"
+    V50 = "v50"
+    V60 = "v60"
+    V80 = "v80"
+    V100 = "v100"
+    V150 = "v150"
+    V200 = "v200"
+    V300 = "v300"
+    V400 = "v400"
+    V500 = "v500"
+    V600 = "v600"
+    V800 = "v800"
+    V1000 = "v1000"
+    V1500 = "v1500"
+    V2000 = "v2000"
+    V2500 = "v2500"
+    V3000 = "v3000"
+    V4000 = "v4000"
+    V5000 = "v5000"
+    V6000 = "v6000"
+    V7000 = "v7000"
+    VMAX = "vmax"

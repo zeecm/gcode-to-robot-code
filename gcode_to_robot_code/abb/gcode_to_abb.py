@@ -9,6 +9,7 @@ from gcode_to_robot_code.abb.data_types import (
     ConfData,
     LoadData,
     Pose,
+    PredefinedSpeed,
     RobTarget,
     ToolData,
     ToolInfo,
@@ -73,23 +74,23 @@ _DEFAULT_TOOL_DATA = ToolData(
 )
 _DEFAULT_TOOL_NAME = "tool1"
 
-DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
+_DEFAULT_TOOL = ToolInfo(name=_DEFAULT_TOOL_NAME, data=_DEFAULT_TOOL_DATA)
 
-DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=430.0)
+_DEFAULT_OFFSET = CartesianCoordinate(x=1000.0, y=-50.0, z=430.0)
 
-DEFAULT_ROTATION = [-1.0, 0.0, 0.0, 0.0]
+_DEFAULT_ROTATION = [-1.0, 0.0, 0.0, 0.0]
 
-DEFAULT_CONF = ConfData(-1.0, 0.0, 1.0, 0.0)
+_DEFAULT_CONF = ConfData(-1.0, 0.0, 1.0, 0.0)
 
-DEFAULT_EXTAX = "[9E+9, 9E+9, 9E9, 9E9, 9E9, 9E9]"
+_DEFAULT_EXTAX = "[9E+9, 9E+9, 9E9, 9E9, 9E9, 9E9]"
 
-HOME_COORDINATE = CartesianCoordinate(x=650.0, y=0.0, z=100.0)
+_HOME_COORDINATE = CartesianCoordinate(x=650.0, y=0.0, z=1000.0)
 
-HOME_ROBTARGET = RobTarget(
-    trans=HOME_COORDINATE,
-    rot=DEFAULT_ROTATION,
-    robconf=DEFAULT_CONF,
-    extax=DEFAULT_EXTAX,
+_HOME_ROBTARGET = RobTarget(
+    trans=_HOME_COORDINATE,
+    rot=_DEFAULT_ROTATION,
+    robconf=_DEFAULT_CONF,
+    extax=_DEFAULT_EXTAX,
 )
 
 
@@ -99,29 +100,31 @@ class ABBModuleGenerator:
         model: ObjectPathModel,
         module_name: str = "MahModule",
         procedure_name: str = "TestProc",
-        tool: ToolInfo = DEFAULT_TOOL,
-        target_offsets: CartesianCoordinate = DEFAULT_OFFSET,
-        home: RobTarget = HOME_ROBTARGET,
+        tool: ToolInfo = _DEFAULT_TOOL,
+        target_offsets: CartesianCoordinate = _DEFAULT_OFFSET,
+        home: RobTarget = _HOME_ROBTARGET,
     ):
         self._model = model
 
         self._module_name = module_name
         self._procedure_name = procedure_name
 
-        self._target_rotation = DEFAULT_ROTATION
-        self._target_conf = DEFAULT_CONF
-        self._target_extax = DEFAULT_EXTAX
+        self._target_rotation = _DEFAULT_ROTATION
+        self._target_conf = _DEFAULT_CONF
+        self._target_extax = _DEFAULT_EXTAX
 
         self._tool = tool
         self._world_object = "wobj0"
         self._target_offsets = target_offsets
         self._home = home
+        self._home_point_name = "zcHome"
 
         self._current_z_plane = 0.0
-        self._movetype = MoveType.LINEAR
+        self._default_movetype = MoveType.PATHFINDING
 
         self._robtargets: List[str] = []
         self._move_commands: List[str] = []
+        self._write_robtarget(self._home, point_name=self._home_point_name)
 
     def _convert_movetype_to_custom_enum(
         self, move_type: Union[Literal["linear", "pathfinding", "curve"], MoveType]
@@ -133,26 +136,37 @@ class ABBModuleGenerator:
     def generate_robtargets_and_movements(self) -> None:
         logger.info("generating abb code...")
         self._write_move_to_home()
-        for point in range(self._model.pathlength - 1):
+        for point in range(self._model.pathlength):
             point_name = f"p_{self._procedure_name}_{point}"
             coordinate = self._model.get_point(point)
-            self._update_z_plane_and_movetype(coordinate)
+
+            speed = self.get_speed(point, self._model.pathlength)
+            movetype = self._update_zplane_and_get_movetype(coordinate)
+
             self._write_robtarget_from_coordinates(coordinate, point_name)
-            self._write_movement(point_name)
+            self._write_movement(point_name, speed=speed, movetype=movetype)
         self._write_move_to_home()
         logger.info("generation of abb rapid code done")
 
-    def _write_move_to_home(self) -> None:
-        home_point_name = "home"
-        self._write_robtarget(self._home, point_name=home_point_name)
-        self._write_movement(home_point_name, movetype=MoveType.PATHFINDING)
+    def get_speed(self, point_num: int, pathlength: int) -> str:
+        if point_num in [0, pathlength - 1]:
+            return PredefinedSpeed.V100.value
+        return PredefinedSpeed.V5.value
 
-    def _update_z_plane_and_movetype(self, coordinate: CartesianCoordinate) -> None:
+    def _write_move_to_home(self) -> None:
+        self._write_movement(
+            self._home_point_name,
+            movetype=MoveType.PATHFINDING,
+            speed=PredefinedSpeed.V1000.value,
+        )
+
+    def _update_zplane_and_get_movetype(
+        self, coordinate: CartesianCoordinate
+    ) -> MoveType:
         if coordinate.z != self._current_z_plane:
             self._current_z_plane = coordinate.z
-            self._movetype = MoveType.PATHFINDING
-            return
-        self._movetype = MoveType.LINEAR
+            return MoveType.PATHFINDING
+        return MoveType.LINEAR
 
     def save_robtargets_and_movements_to_text(
         self,
@@ -203,9 +217,10 @@ class ABBModuleGenerator:
         self,
         point_name: str,
         movetype: Optional[MoveType] = None,
+        speed: str = PredefinedSpeed.V100.value,
     ) -> None:
-        movetype = movetype or self._movetype
-        move_command = f"{movetype.value} {point_name},v100,fine,{self._tool.name}\WObj:={self._world_object};\n"
+        movetype = movetype or self._default_movetype
+        move_command = f"{movetype.value} {point_name},{speed},fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
     @property
