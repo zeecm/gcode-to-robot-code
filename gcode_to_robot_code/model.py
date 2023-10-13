@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
 from loguru import logger
@@ -28,24 +28,28 @@ class ObjectPathModel:
         return len(self._pathdata.index)
 
     @property
-    def x(self) -> pd.Series:
+    def x_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.X]
 
     @property
-    def y(self) -> pd.Series:
+    def y_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.Y]
 
     @property
-    def z(self) -> pd.Series:
+    def z_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.Z]
 
     @property
-    def toolpath(self) -> pd.DataFrame:
+    def toolpath_data(self) -> pd.DataFrame:
         return self._pathdata
 
     def add_point(
-        self, coordinate: CartesianCoordinate, before_index: Optional[int] = None
+        self,
+        coordinate: Union[Tuple[float, float, float], CartesianCoordinate],
+        before_index: Optional[int] = None,
     ) -> None:
+        if not isinstance(coordinate, CartesianCoordinate):
+            coordinate = self._convert_to_cartesian_coordinate_datatype(coordinate)
         new_point = [coordinate.x, coordinate.y, coordinate.z]
         if before_index:
             mid_index = before_index - 0.5
@@ -55,12 +59,17 @@ class ObjectPathModel:
             self._pathdata.loc[last_index, :] = new_point
         self._pathdata.reset_index(drop=True, inplace=True)
 
+    def _convert_to_cartesian_coordinate_datatype(
+        self, coordinate: Tuple[float, float, float]
+    ) -> CartesianCoordinate:
+        return CartesianCoordinate(coordinate[0], coordinate[1], coordinate[2])
+
     def get_point(self, index: int) -> CartesianCoordinate:
         point_row = self._pathdata.iloc[index]
         # ignoring types as valid
-        x = point_row[CartesianCoordinateAxis.X] # type: ignore
-        y = point_row[CartesianCoordinateAxis.Y] # type: ignore
-        z = point_row[CartesianCoordinateAxis.Z] # type: ignore
+        x = point_row[CartesianCoordinateAxis.X]  # type: ignore
+        y = point_row[CartesianCoordinateAxis.Y]  # type: ignore
+        z = point_row[CartesianCoordinateAxis.Z]  # type: ignore
         return CartesianCoordinate(x, y, z)
 
     def remove_point_by_index(
@@ -85,12 +94,16 @@ class ObjectPathModel:
     def plot_path(
         self,
         plotter: Optional[PathPlotter] = None,
-        projection: ProjectionMode = ProjectionMode.TWO_DIMENSIONAL,
+        projection: Union[
+            Literal["3d", "2d"], ProjectionMode
+        ] = ProjectionMode.TWO_DIMENSIONAL,
     ) -> None:
+        if not isinstance(projection, ProjectionMode):
+            projection = ProjectionMode(projection)
         plotter = plotter or MatplotlibPathPlotter()
-        x = self.x.to_numpy()
-        y = self.y.to_numpy()
-        z = self.z.to_numpy()
+        x = self.x_values.to_numpy()
+        y = self.y_values.to_numpy()
+        z = self.z_values.to_numpy()
         plotter.plot_path(x=x, y=y, z=z, projection=projection)
 
     @classmethod
@@ -107,17 +120,17 @@ class ObjectPathModel:
         while start_index < self.pathlength - 1:
             end_index = start_index + 1
             direction_vector = self._calculate_direction_vector(
-                self.x[start_index : end_index + 1],
-                self.y[start_index : end_index + 1],
-                self.z[start_index : end_index + 1],
+                self.x_values[start_index : end_index + 1],
+                self.y_values[start_index : end_index + 1],
+                self.z_values[start_index : end_index + 1],
             )
             end_index += 1
             while (
                 end_index < self.pathlength
                 and self._calculate_direction_vector(
-                    self.x[start_index : end_index + 1],
-                    self.y[start_index : end_index + 1],
-                    self.z[start_index : end_index + 1],
+                    self.x_values[start_index : end_index + 1],
+                    self.y_values[start_index : end_index + 1],
+                    self.z_values[start_index : end_index + 1],
                 )
                 == direction_vector
             ):
@@ -125,7 +138,7 @@ class ObjectPathModel:
 
             end_index = min(self.pathlength - 1, end_index)
 
-            optimized_toolpath.append(self.toolpath.iloc[[start_index, end_index]])
+            optimized_toolpath.append(self.toolpath_data.iloc[[start_index, end_index]])
 
             start_index = end_index + 1
         logger.info("optimization done")
