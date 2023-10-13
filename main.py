@@ -8,5 +8,5 @@ if __name__ == "__main__":
     model = reader.read_file(ELLIPSE_FILEPATH)
     model.plot_path(projection="2d")
     gen = ABBModuleGenerator(model, module_name="Ellipse", procedure_name="DrawEllipse")
-    gen.generate_robtargets_and_movements()
-    gen.save_module()
+    gen.generate_robtargets_and_move_commands()
+    gen.save_as_module()

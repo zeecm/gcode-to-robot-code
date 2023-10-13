@@ -34,24 +34,24 @@ class TestObjectModel:
                 },
             ]
         )
-        assert_frame_equal(self.model.toolpath, expected_model)
+        assert_frame_equal(self.model.toolpath_data, expected_model)
 
     def test_get_point(self):
         coordinate = self.model.get_point(0)
         assert coordinate == CartesianCoordinate(1, 2, 3)
 
     def test_x_property(self):
-        x_series = self.model.x
+        x_series = self.model.x_values
         expected_x_series = pd.Series([1.0], name=CartesianCoordinateAxis.X)
         assert_series_equal(x_series, expected_x_series)
 
     def test_y_property(self):
-        y_series = self.model.y
+        y_series = self.model.y_values
         expected_y_series = pd.Series([2.0], name=CartesianCoordinateAxis.Y)
         assert_series_equal(y_series, expected_y_series)
 
     def test_z_property(self):
-        z_series = self.model.z
+        z_series = self.model.z_values
         ezpected_z_series = pd.Series([3.0], name=CartesianCoordinateAxis.Z)
         assert_series_equal(z_series, ezpected_z_series)
 
@@ -145,7 +145,7 @@ class TestObjectModel:
             ]
         )
 
-        assert_frame_equal(self.model.toolpath, expected_model)
+        assert_frame_equal(self.model.toolpath_data, expected_model)
 
     def test_from_coordinates(self):
         coordinates = [
@@ -156,9 +156,9 @@ class TestObjectModel:
             },
         ]
         toolpath = ObjectPathModel.from_coordinates(coordinates)
-        assert toolpath.x[0] == 10.0
-        assert toolpath.y[0] == 20.0
-        assert toolpath.z[0] == 30.0
+        assert toolpath.x_values[0] == 10.0
+        assert toolpath.y_values[0] == 20.0
+        assert toolpath.z_values[0] == 30.0
 
     def test_optimize_path(self):
         coordinates = [

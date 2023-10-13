@@ -97,3 +97,9 @@ class PredefinedSpeed(Enum):
     V6000 = "v6000"
     V7000 = "v7000"
     VMAX = "vmax"
+
+
+class MoveType(Enum):
+    LINEAR = "moveL"
+    PATHFINDING = "moveJ"
+    CURVE = "moveC"

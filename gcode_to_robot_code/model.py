@@ -28,19 +28,19 @@ class ObjectPathModel:
         return len(self._pathdata.index)
 
     @property
-    def x(self) -> pd.Series:
+    def x_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.X]
 
     @property
-    def y(self) -> pd.Series:
+    def y_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.Y]
 
     @property
-    def z(self) -> pd.Series:
+    def z_values(self) -> pd.Series:
         return self._pathdata[CartesianCoordinateAxis.Z]
 
     @property
-    def toolpath(self) -> pd.DataFrame:
+    def toolpath_data(self) -> pd.DataFrame:
         return self._pathdata
 
     def add_point(
@@ -101,9 +101,9 @@ class ObjectPathModel:
         if not isinstance(projection, ProjectionMode):
             projection = ProjectionMode(projection)
         plotter = plotter or MatplotlibPathPlotter()
-        x = self.x.to_numpy()
-        y = self.y.to_numpy()
-        z = self.z.to_numpy()
+        x = self.x_values.to_numpy()
+        y = self.y_values.to_numpy()
+        z = self.z_values.to_numpy()
         plotter.plot_path(x=x, y=y, z=z, projection=projection)
 
     @classmethod
@@ -120,17 +120,17 @@ class ObjectPathModel:
         while start_index < self.pathlength - 1:
             end_index = start_index + 1
             direction_vector = self._calculate_direction_vector(
-                self.x[start_index : end_index + 1],
-                self.y[start_index : end_index + 1],
-                self.z[start_index : end_index + 1],
+                self.x_values[start_index : end_index + 1],
+                self.y_values[start_index : end_index + 1],
+                self.z_values[start_index : end_index + 1],
             )
             end_index += 1
             while (
                 end_index < self.pathlength
                 and self._calculate_direction_vector(
-                    self.x[start_index : end_index + 1],
-                    self.y[start_index : end_index + 1],
-                    self.z[start_index : end_index + 1],
+                    self.x_values[start_index : end_index + 1],
+                    self.y_values[start_index : end_index + 1],
+                    self.z_values[start_index : end_index + 1],
                 )
                 == direction_vector
             ):
@@ -138,7 +138,7 @@ class ObjectPathModel:
 
             end_index = min(self.pathlength - 1, end_index)
 
-            optimized_toolpath.append(self.toolpath.iloc[[start_index, end_index]])
+            optimized_toolpath.append(self.toolpath_data.iloc[[start_index, end_index]])
 
             start_index = end_index + 1
         logger.info("optimization done")
