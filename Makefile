@@ -13,7 +13,7 @@ check:
 	pyright $(PACKAGE) tests/
 
 test:
-	pytest --cov=$(PACKAGE) tests/
+	python3 -m pytest --cov=$(PACKAGE) tests/
 
 format:
 	pycln $(PACKAGE) tests/
