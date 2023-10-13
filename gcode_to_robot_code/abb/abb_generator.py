@@ -166,9 +166,12 @@ class ABBModuleGenerator:
 
     def save_as_module(self, module_filepath: Optional[str] = None) -> None:
         module_filepath = module_filepath or f"{self._module_name}.mod"
-        module = self._generate_module_codeblock()
-        module_text_data = module.generate_text_list()
+        module_text_data = self.generate_module_text()
         self._write_to_file(module_text_data, module_filepath)
+
+    def generate_module_text(self) -> List[str]:
+        module = self._generate_module_codeblock()
+        return module.generate_text_list()
 
     def _generate_module_codeblock(self) -> CodeBlock:
         module_declaration = f"MODULE {self._module_name}\n"

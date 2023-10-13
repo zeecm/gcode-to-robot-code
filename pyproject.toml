@@ -3,3 +3,6 @@ requires = ["setuptools"]
 
 [tool.isort]
 profile="black"
+
+[tool.pyright]
+exclude = ["gcode_to_robot_code/gui/pyside_files/*"]
