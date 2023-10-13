@@ -30,6 +30,8 @@ class CartesianCoordinate(NamedTuple):
         )
 
     def offset_by_values(
-        self, x: float = 0.0, y: float = 0.0, z: float = 0.0
+        self, x_offset: float = 0.0, y_offset: float = 0.0, z_offset: float = 0.0
     ) -> CartesianCoordinate:
-        return CartesianCoordinate(self.x + x, self.y + y, self.z + z)
+        return CartesianCoordinate(
+            self.x + x_offset, self.y + y_offset, self.z + z_offset
+        )

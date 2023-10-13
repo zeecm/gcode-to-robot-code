@@ -1,4 +1,4 @@
-from gcode_to_robot_code.abb.data_types import (
+from gcode_to_robot_code.abb.abb_data_types import (
     ConfData,
     LoadData,
     Pose,

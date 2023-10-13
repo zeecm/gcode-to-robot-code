@@ -46,7 +46,7 @@ class RobTarget(NamedTuple):
     robconf: ConfData  #
     extax: str  # shape=(6,)
 
-    def to_string(self):
+    def to_string(self) -> str:
         return f"[{list(self.trans)}, {self.rot},{list(self.robconf)}, {self.extax}]"
 
 

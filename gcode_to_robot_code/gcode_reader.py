@@ -74,22 +74,22 @@ class GcodeReader:
     def _parse_movement_command(
         self, command_components: List[str]
     ) -> CartesianCoordinate:
-        x = None
-        y = None
-        z = None
+        x_value = None
+        y_value = None
+        z_value = None
 
         for command in command_components:
             if command.startswith(";"):
                 break
             if command.startswith("X"):
-                x = float(command[1:])
+                x_value = float(command[1:])
             elif command.startswith("Y"):
-                y = float(command[1:])
+                y_value = float(command[1:])
             elif command.startswith("Z"):
-                z = float(command[1:]) - self._slicer_layer_height
+                z_value = float(command[1:]) - self._slicer_layer_height
 
-        x = x if x is not None else self._current_coordinate.x
-        y = y if y is not None else self._current_coordinate.y
-        z = z if z is not None else self._current_coordinate.z
+        x_value = x_value if x_value is not None else self._current_coordinate.x
+        y_value = y_value if y_value is not None else self._current_coordinate.y
+        z_value = z_value if z_value is not None else self._current_coordinate.z
 
-        return CartesianCoordinate(x, y, z)
+        return CartesianCoordinate(x_value, y_value, z_value)

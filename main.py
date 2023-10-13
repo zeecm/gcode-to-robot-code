@@ -1,4 +1,4 @@
-from gcode_to_robot_code.abb.gcode_to_abb import ABBModuleGenerator
+from gcode_to_robot_code.abb.abb_generator import ABBModuleGenerator
 from gcode_to_robot_code.gcode_reader import GcodeReader
 
 ELLIPSE_FILEPATH = "gcode_to_robot_code/gcode_files/EllipseV3.gcode"

@@ -4,13 +4,13 @@ from typing import List, NamedTuple, Optional, Union
 
 from loguru import logger
 
-from gcode_to_robot_code.abb.data_types import (
+from gcode_to_robot_code.abb.abb_data_types import (
     MoveType,
     PredefinedSpeed,
     RobTarget,
     ToolInfo,
 )
-from gcode_to_robot_code.abb.defaults import (
+from gcode_to_robot_code.abb.abb_defaults import (
     _DEFAULT_CONF,
     _DEFAULT_EXTAX,
     _DEFAULT_OFFSET,

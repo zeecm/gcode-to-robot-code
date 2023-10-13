@@ -16,6 +16,6 @@ test:
 	pytest --cov=$(PACKAGE) tests/
 
 format:
-	pycln $(PACKAGE)
-	black $(PACKAGE)
-	isort $(PACKAGE)
+	pycln $(PACKAGE) tests/
+	black $(PACKAGE) tests/
+	isort $(PACKAGE) tests/
