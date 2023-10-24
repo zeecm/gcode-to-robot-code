@@ -43,6 +43,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
+    QGraphicsView,
     QGridLayout,
     QHBoxLayout,
     QHeaderView,
@@ -79,6 +80,7 @@ class Ui_GcodeToRobotCodeWindow(object):
         self.verticalLayout_3 = QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.verticalLayout_6 = QVBoxLayout()
+        self.verticalLayout_6.setSpacing(50)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
@@ -207,6 +209,10 @@ class Ui_GcodeToRobotCodeWindow(object):
         self.gridLayout_5.setObjectName("gridLayout_5")
         self.gridLayout_3 = QGridLayout()
         self.gridLayout_3.setObjectName("gridLayout_3")
+        self.plot_graphics_view = QGraphicsView(self.path_plot_tab)
+        self.plot_graphics_view.setObjectName("plot_graphics_view")
+
+        self.gridLayout_3.addWidget(self.plot_graphics_view, 0, 0, 1, 1)
 
         self.gridLayout_5.addLayout(self.gridLayout_3, 0, 0, 1, 1)
 
