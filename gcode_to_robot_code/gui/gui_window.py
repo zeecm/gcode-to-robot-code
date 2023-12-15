@@ -126,7 +126,7 @@ class GcodeToRobotCodeUI(QMainWindow):
                 filter=rapid_mod_file_filter_str,
             )
             if filepath is not None:
-                result, err_str = self._abb_generator.save_as_module(filepath)
+                result, exc = self._abb_generator.save_as_module(filepath)
                 if result:
                     success_msg = f"Saved module to {filepath}"
                     dialog.setWindowTitle("Saved!")
@@ -134,6 +134,6 @@ class GcodeToRobotCodeUI(QMainWindow):
                     logger.info(success_msg)
                 else:
                     dialog.setWindowTitle("Error Saving Module")
-                    dialog.setText(f"Failed to save with error: {err_str}")
-                    logger.error(err_str)
+                    dialog.setText(f"Failed to save with error: {exc}")
+                    logger.error(exc)
         dialog.exec_()

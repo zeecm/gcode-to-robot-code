@@ -196,12 +196,14 @@ class ABBModuleGenerator:
         move_command = f"{movetype.value} {point_name},{speed},fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
-    def save_as_module(self, module_filepath: Optional[str] = None) -> Tuple[bool, str]:
+    def save_as_module(
+        self, module_filepath: Optional[str] = None
+    ) -> Tuple[bool, Optional[Exception]]:
         module_filepath = module_filepath or f"{self._module_name}.mod"
         module_text_data = self.generate_module_text()
         try:
             self._write_to_file(module_text_data, module_filepath)
-            return (True, "")
+            return (True, None)
         except Exception as exc:
             return (False, exc)
 
