@@ -1,3 +1,7 @@
+"""
+"""
+
+
 from __future__ import annotations
 
 from typing import List, NamedTuple, Optional, Union
@@ -25,6 +29,18 @@ _INDENTATION = "    "
 
 
 class CodeBlock(NamedTuple):
+    """
+    This piece of code defines a class called CodeBlock that represents a block of code. It has attributes for the start line, end line, and the code within the block. The class provides a method generate_text_list() that returns a list of strings representing the code block.
+
+    How?
+    The CodeBlock class has the following implementation:
+
+    It is defined as a named tuple with three attributes: start_line, end_line, and code.
+    The generate_text_list() method is defined to generate a list of strings representing the code block.
+    The _generate_nested_code() method is a helper method that recursively generates the code for nested code blocks.
+
+    """
+
     start_line: str
     end_line: str
     code: Optional[List[Union[CodeBlock, List[str]]]]
@@ -50,6 +66,24 @@ class CodeBlock(NamedTuple):
 
 
 class ABBModuleGenerator:
+    """
+    This code defines a class ABBModuleGenerator that generates ABB robot module code. The module code consists of robtargets (robot targets) and move commands. The class provides methods to generate the robtargets and move commands based on a given model, and to save them as a module file or as separate text files.
+
+    How?
+    The ABBModuleGenerator class has the following key components:
+
+    Constructor: Initializes the class with the given model, module name, procedure name, tool information, target offsets, and home position.
+    generate_robtargets_and_move_commands method: Generates the robtargets and move commands based on the model.
+    Helper methods: _generate_move_to_home_command, _generate_robtargets_and_move_commands_for_model, get_speed, _update_zplane_and_get_movetype, _add_robtarget_from_coordinate, _robtarget_from_coordinate, _add_robtarget, _add_move_command: These methods are used by generate_robtargets_and_move_commands to generate the robtargets and move commands.
+    save_as_module method: Saves the generated module code as a module file.
+    _generate_module_codeblock method: Generates the code block for the module.
+    _generate_tooldata_line method: Generates the tool data line for the module.
+    _generate_procedure_codeblock method: Generates the code block for the procedure.
+    save_robtargets_and_movements_to_text method: Saves the generated robtargets and move commands as separate text files.
+    _write_to_file method: Writes the data to a file.
+
+    """
+
     def __init__(
         self,
         model: ObjectPathModel,

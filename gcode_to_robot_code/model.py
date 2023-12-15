@@ -1,3 +1,16 @@
+"""Description
+The code defines a class ObjectPathModel that represents a path of objects in a 3D space. It provides methods to add and remove points, calculate the length of the path, subset the path based on a percentage, plot the path, and optimize straight line paths.
+
+The ObjectPathModel class has the following key components:
+
+The constructor initializes the path data as a pandas DataFrame.
+The add_point method adds a new point to the path at a specified index.
+The remove_point_by_index method removes a point from the path at a specified index.
+The subset_model method subsets the path based on a percentage, keeping only a fraction of the points.
+The plot_path method plots the path using a specified plotter and projection mode.
+The optimize_straight_line method optimizes the path by combining consecutive points that form a straight line.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Literal, Optional, Tuple, Union
@@ -84,7 +97,7 @@ class ObjectPathModel:
         percentage: float,
     ) -> None:
         if not 0.0 <= percentage <= 100.0:
-            raise ValueError(f"invalid percentage: {percentage}")
+            raise ValueError(f"invalid percentage: {percentage}, must be within 0-100")
         decimal_percentage = percentage / 100
         num_rows_to_remain = self.pathlength * decimal_percentage
         step_size = int(self.pathlength / num_rows_to_remain)

@@ -1,3 +1,16 @@
+"""
+This code defines several data types related to Cartesian coordinates, including an enumeration for projection modes and an enumeration for Cartesian coordinate axes. It also defines a CartesianCoordinate named tuple that represents a point in 3D space and provides methods for offsetting the coordinates.
+
+The code defines the following:
+
+ProjectionMode enum: Represents different projection modes, either three-dimensional or two-dimensional.
+CartesianCoordinateAxis enum: Represents different Cartesian coordinate axes, either X, Y, or Z.
+CartesianCoordinate named tuple: Represents a point in 3D space with x, y, and z coordinates. It provides two methods:
+offset_by_coordinate: Offsets the coordinates by another CartesianCoordinate object.
+offset_by_values: Offsets the coordinates by individual x, y, and z values.
+"""
+
+
 from __future__ import annotations
 
 from enum import Enum
