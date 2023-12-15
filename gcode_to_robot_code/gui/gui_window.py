@@ -1,5 +1,5 @@
 from loguru import logger
-from PySide6.QtWidgets import QFileDialog, QMainWindow
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 from gcode_to_robot_code.abb.abb_generator import ABBModuleGenerator
 from gcode_to_robot_code.gcode_reader import GcodeReader
@@ -30,6 +30,7 @@ class GcodeToRobotCodeUI(QMainWindow):
             self._generate_abb_rapid_code_button_clicked
         )
         self.ui.select_gcode_file_button.clicked.connect(self._select_gcode_file)
+        self.ui.save_module_button.clicked.connect(self._save_module)
 
     def _read_gcode_button_clicked(self) -> None:
         filepath = self.ui.gcode_filepath_lineedit.text()
@@ -107,3 +108,32 @@ class GcodeToRobotCodeUI(QMainWindow):
         text = "\n".join(module_text_data)
         self.ui.module_preview_text.setText(text)
         logger.info("module preview display updated")
+
+    def _save_module(self) -> None:
+        filename = self.ui.save_filepath_lineedit.text()
+        if not filename.lower().endswith(".mod"):
+            filename += ".mod"
+        dialog = QMessageBox(self)
+        if self._abb_generator is None:
+            dialog.setWindowTitle("ABB Code Not Generated")
+            dialog.setText("Unable to save as ABB Code has not been generated")
+        else:
+            rapid_mod_file_filter_str = "RAPID MOD Files (*.mod)"
+            filepath, _ = QFileDialog().getSaveFileName(
+                self,
+                "Save Module",
+                dir=f"./{filename}",
+                filter=rapid_mod_file_filter_str,
+            )
+            if filepath is not None:
+                result, exc = self._abb_generator.save_as_module(filepath)
+                if result:
+                    success_msg = f"Saved module to {filepath}"
+                    dialog.setWindowTitle("Saved!")
+                    dialog.setText(success_msg)
+                    logger.info(success_msg)
+                else:
+                    dialog.setWindowTitle("Error Saving Module")
+                    dialog.setText(f"Failed to save with error: {exc}")
+                    logger.error(exc)
+        dialog.exec_()

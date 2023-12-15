@@ -1,7 +1,7 @@
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Union
 
 import pandas as pd
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 
 
 class PandasModel(QAbstractTableModel):
@@ -33,8 +33,10 @@ class PandasModel(QAbstractTableModel):
         """
         return len(self._dataframe.columns) if parent == QModelIndex() else 0
 
-    def data(
-        self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole
+    def data(  # type: ignore
+        self,
+        index: Union[QModelIndex, QPersistentModelIndex],
+        role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole,
     ):
         """Override method from QAbstractTableModel
 
@@ -48,7 +50,7 @@ class PandasModel(QAbstractTableModel):
 
         return None
 
-    def headerData(
+    def headerData(  # type: ignore
         self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole
     ):
         """Override method from QAbstractTableModel
