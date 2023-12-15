@@ -1,3 +1,9 @@
+"""
+This code initializes default values for various ABB robot data types and constants used in the gcode_to_robot_code module.
+
+The code imports several data types and constants from the gcode_to_robot_code.abb.abb_data_types and gcode_to_robot_code.constants modules. It then defines default values for tool data, tool name, offset, rotation, configuration data, external axes, and home coordinate. These default values are used as initial values or fallback values in the gcode_to_robot_code module.
+"""
+
 from gcode_to_robot_code.abb.abb_data_types import (
     ConfData,
     LoadData,

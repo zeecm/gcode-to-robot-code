@@ -1,3 +1,18 @@
+"""
+The code defines a class GcodeReader that reads a Gcode file, parses the movement commands, and creates an ObjectPathModel representing the path of objects in a 3D space.
+
+The GcodeReader class has the following key components:
+
+The constructor initializes the necessary variables.
+The read_file method reads the Gcode file, parses the commands, and updates the ObjectPathModel.
+The _read_filelines method reads the lines of the Gcode file and calls the _parse_command method for each line.
+The _check_for_valid_gcode_file method checks if the file has a valid Gcode extension.
+The _update_model method creates an ObjectPathModel instance from the parsed coordinates.
+The _parse_command method parses the movement commands and extracts the X, Y, and Z coordinates.
+The _identify_mesh_start method identifies the start of the mesh section in the Gcode file.
+The _parse_movement_command method parses the movement command and returns a CartesianCoordinate object.
+"""
+
 from typing import Dict, List
 
 from loguru import logger
