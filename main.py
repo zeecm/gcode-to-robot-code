@@ -1,12 +1,11 @@
-from gcode_to_robot_code.abb.abb_generator import ABBModuleGenerator
-from gcode_to_robot_code.gcode_reader import GcodeReader
+import sys
 
-ELLIPSE_FILEPATH = "gcode_to_robot_code/gcode_files/EllipseV3.gcode"
+from PySide6.QtWidgets import QApplication
+
+from gcode_to_robot_code.gui.gui_window import GcodeToRobotCodeUI
 
 if __name__ == "__main__":
-    reader = GcodeReader()
-    model = reader.read_file(ELLIPSE_FILEPATH)
-    model.plot_path(projection="2d")
-    gen = ABBModuleGenerator(model, module_name="Ellipse", procedure_name="DrawEllipse")
-    gen.generate_robtargets_and_move_commands()
-    gen.save_as_module()
+    app = QApplication(sys.argv)
+    gcode_to_robot_code_ui = GcodeToRobotCodeUI()
+    gcode_to_robot_code_ui.show()
+    sys.exit(app.exec())

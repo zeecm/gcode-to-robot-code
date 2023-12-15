@@ -106,10 +106,10 @@ class ObjectPathModel:
 
     def plot_path(
         self,
-        plotter: Optional[PathPlotter] = None,
         projection: Union[
             Literal["3d", "2d"], ProjectionMode
         ] = ProjectionMode.TWO_DIMENSIONAL,
+        plotter: Optional[PathPlotter] = None,
     ) -> None:
         if not isinstance(projection, ProjectionMode):
             projection = ProjectionMode(projection)
@@ -125,7 +125,7 @@ class ObjectPathModel:
     ) -> ObjectPathModel:
         return ObjectPathModel(pathdata)
 
-    def optimize_straight_line(self) -> None:
+    def optimize_straight_lines(self) -> None:
         logger.info("optimizing straight line paths")
         optimized_toolpath = []
         start_index = 0
@@ -155,7 +155,7 @@ class ObjectPathModel:
 
             start_index = end_index + 1
         logger.info("optimization done")
-        self._pathdata = pd.concat(optimized_toolpath)
+        self._pathdata = pd.concat(optimized_toolpath).reset_index(drop=True)
 
     def _calculate_direction_vector(
         self, x_values: pd.Series, y_values: pd.Series, z_values: pd.Series

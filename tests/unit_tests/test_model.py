@@ -179,5 +179,5 @@ class TestObjectModel:
             },
         ]
         toolpath = ObjectPathModel.from_coordinates(coordinates)
-        toolpath.optimize_straight_line()
+        toolpath.optimize_straight_lines()
         assert toolpath.pathlength == 2

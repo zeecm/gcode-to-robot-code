@@ -13,6 +13,7 @@ setup(
         "requests",
         "loguru",
         "matplotlib",
+        "pyside6",
     ],
     extras_require={
         "dev": [

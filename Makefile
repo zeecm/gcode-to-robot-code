@@ -19,3 +19,9 @@ format:
 	pycln $(PACKAGE) tests/
 	black $(PACKAGE) tests/
 	isort $(PACKAGE) tests/
+
+update-qt:
+	pyside6-uic gcode_to_robot_code/gui/pyside_files/designer/app_window.ui -o gcode_to_robot_code/gui/pyside_files/generated/app_window.py
+
+run:
+	python3 -m main
