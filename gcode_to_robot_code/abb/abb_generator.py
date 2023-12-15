@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional, Tuple, Union
 
 from loguru import logger
 
@@ -32,7 +32,6 @@ class CodeBlock(NamedTuple):
     """
     This piece of code defines a class called CodeBlock that represents a block of code. It has attributes for the start line, end line, and the code within the block. The class provides a method generate_text_list() that returns a list of strings representing the code block.
 
-    How?
     The CodeBlock class has the following implementation:
 
     It is defined as a named tuple with three attributes: start_line, end_line, and code.
@@ -69,7 +68,6 @@ class ABBModuleGenerator:
     """
     This code defines a class ABBModuleGenerator that generates ABB robot module code. The module code consists of robtargets (robot targets) and move commands. The class provides methods to generate the robtargets and move commands based on a given model, and to save them as a module file or as separate text files.
 
-    How?
     The ABBModuleGenerator class has the following key components:
 
     Constructor: Initializes the class with the given model, module name, procedure name, tool information, target offsets, and home position.
@@ -198,10 +196,14 @@ class ABBModuleGenerator:
         move_command = f"{movetype.value} {point_name},{speed},fine,{self._tool.name}\WObj:={self._world_object};\n"
         self._move_commands.append(move_command)
 
-    def save_as_module(self, module_filepath: Optional[str] = None) -> None:
+    def save_as_module(self, module_filepath: Optional[str] = None) -> Tuple[bool, str]:
         module_filepath = module_filepath or f"{self._module_name}.mod"
         module_text_data = self.generate_module_text()
-        self._write_to_file(module_text_data, module_filepath)
+        try:
+            self._write_to_file(module_text_data, module_filepath)
+            return (True, "")
+        except Exception as exc:
+            return (False, exc)
 
     def generate_module_text(self) -> List[str]:
         module = self._generate_module_codeblock()
@@ -248,5 +250,6 @@ class ABBModuleGenerator:
 
     def _write_to_file(self, data: List[str], filepath: str) -> None:
         with open(filepath, "w", encoding="utf-8") as file:
+            logger.info(f"writing to {filepath}...")
             for line in data:
                 file.writelines(line)
